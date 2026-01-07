@@ -138,9 +138,6 @@ main_model_name = "replyer"
 
 3. **上下文长度**：默认跟随主程序的 `chat.max_context_size` 设置
 
-## 作者
-
-heitiehu
 
 ## 许可证
 
