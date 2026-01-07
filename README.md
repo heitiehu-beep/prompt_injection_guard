@@ -1,4 +1,4 @@
-# Prompt Injection Guard v1.0.0
+# prompt_injection_guard v1.0.0
 
 防御提示词注入攻击的 MaiBot 安全插件。
 
