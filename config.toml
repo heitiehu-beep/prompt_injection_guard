@@ -1,0 +1,102 @@
+# ============================================================
+# Prompt Injection Guard - 防御提示词注入插件配置
+# ============================================================
+
+[plugin]
+enabled = true
+config_version = "1.0.0"
+
+[detection]
+# ========== 检测模式 ==========
+# 决定如何检测提示词注入攻击
+#
+# "rule_only"     - 仅使用规则检测（关键词 + 正则表达式）
+#                   优点：速度最快，零 API 费用
+#                   缺点：可能漏检复杂变体
+#
+# "rule_then_llm" - 规则初筛 + LLM 二次确认（推荐）
+#                   优点：平衡准确性和成本，只有规则命中时才调用 LLM
+#                   缺点：规则未命中的注入无法检测
+#
+# "llm_only"      - 每条消息都使用 LLM 检测
+#                   优点：检测最准确，能识别复杂变体
+#                   缺点：API 费用高，速度较慢
+#
+mode = "rule_then_llm"
+
+# 是否跟随主程序的上下文长度（chat.max_context_size）
+# true = 只检查 bot 实际会看到的消息范围
+follow_main_context_size = true
+
+# 自定义检查范围（仅当 follow_main_context_size = false 时生效）
+custom_check_size = 30
+
+[action]
+# ========== 执行方式 ==========
+# 检测到注入后如何处理
+#
+# "delete"       - 直接删除危险消息
+#                  效果：消息从数据库中删除，bot 完全看不到
+#                  适用：想要彻底阻止注入进入上下文
+#
+# "warn_context" - 保留消息，但在 LLM prompt 中注入警告
+#                  效果：bot 看到消息，但同时收到安全警告
+#                  适用：想让 bot 自己判断如何应对，更灵活
+#
+# "detect_only"  - 仅检测，不采取任何行动
+#                  效果：只记录日志，不删除也不警告
+#                  适用：测试规则效果、观察攻击模式
+#
+type = "warn_context"
+
+# 是否记录检测日志
+enable_logging = true
+
+# ========== 管理员通知 ==========
+# 检测到注入时是否通知管理员
+enable_admin_notify = false
+
+# 管理员 QQ 号（私聊通知）
+# 留空或不设置则不通知
+admin_qq = ""
+
+[rules]
+# 是否启用预设规则（包含 100+ 条中英文规则）
+# 预设规则覆盖六大类：
+# 1. 指令覆盖类 - 忽略之前、ignore previous 等
+# 2. 角色扮演类 - 你现在是、pretend to be 等
+# 3. 系统标记伪造类 - system:、<|im_start|> 等
+# 4. 越狱类 - jailbreak、DAN mode 等
+# 5. 元指令类 - 隐藏指令、secret instruction 等
+# 6. 多语言绕过类 - 日语、韩语、编码等
+enable_preset_rules = true
+
+# 用户自定义关键词（追加到预设规则）
+# 示例: ["我的特殊关键词", "another keyword"]
+custom_keywords = []
+
+# 用户自定义正则表达式（追加到预设规则）
+# 示例: ["(?i)my\\s+custom\\s+pattern"]
+custom_patterns = []
+
+[llm]
+# ========== LLM 配置 ==========
+# LLM 来源
+# "main"   - 使用主程序已配置的模型（无需额外配置）
+# "custom" - 使用自定义 OpenAI 格式 API（可配置轻量模型降低成本）
+source = "main"
+
+# 当 source = "main" 时，选择主程序的模型名称
+# 可选: "replyer", "planner" 等（取决于你的 model_config.toml）
+main_model_name = "tool_use"
+
+# 当 source = "custom" 时，使用以下自定义 API 配置
+[llm.custom]
+api_base = "https://api.openai.com/v1"
+api_key = "sk-xxx"
+model = "gpt-4o-mini"  # 推荐用轻量模型降低成本
+
+# LLM 通用设置
+[llm.settings]
+temperature = 0.1  # 越低越严格，推荐 0.1
+max_tokens = 6048   # 批量检测需要更多 token
