@@ -5,12 +5,13 @@
   "description": "防御提示词注入攻击，支持规则检测和 LLM 检测",
   "author": {
     "name": "heitiehu-beep",
-    "url": "https://github.com/MaiM-with-u/MaiBot"
+    "url": "https://github.com/heitiehu-beep"
   },
   "license": "MIT",
   "host_application": {
     "min_version": "0.11.0"
   },
+  "repository_url": "https://github.com/heitiehu-beep/prompt_injection_guard",
   "keywords": [
     "安全",
     "提示词注入",
@@ -21,26 +22,4 @@
     "安全",
     "工具"
   ],
-  "repository_url": "",
-  "dependencies": [],
-  "python_dependencies": [
-    "aiohttp"
-  ],
-  "config_file": "config.toml",
-  "enabled": true,
-  "components": {
-    "event_handlers": [
-      {
-        "name": "injection_delete_handler",
-        "event_type": "ON_MESSAGE",
-        "description": "检测到注入时删除消息（action.type = delete）"
-      },
-      {
-        "name": "injection_warn_handler",
-        "event_type": "POST_LLM",
-        "description": "检测到注入时在 prompt 中注入警告（action.type = warn_context）"
-      }
-    ]
-  },
-  "id": "heitiehu.prompt_injection_guard"
 }
