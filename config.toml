@@ -31,6 +31,11 @@ follow_main_context_size = true
 # 自定义检查范围（仅当 follow_main_context_size = false 时生效）
 custom_check_size = 30
 
+# 规则命中阈值：一条消息需要命中多少条规则才算可疑
+# 设为 1 = 命中任意一条就触发（严格）
+# 设为 2 或 3 = 需要命中多条才触发（宽松，减少误报）
+min_rule_hits = 2
+
 [action]
 # ========== 执行方式 ==========
 # 检测到注入后如何处理

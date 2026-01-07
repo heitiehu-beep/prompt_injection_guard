@@ -71,8 +71,9 @@ async def notify_admin(config: Dict, injections: List[Dict[str, Any]]):
         preview = inj.get("text", "")[:60]
         if len(inj.get("text", "")) > 60:
             preview += "..."
+        hit_count = inj.get("hit_count", 1)
         lines.append(f"• {inj.get('user', '?')} ({inj.get('user_id', '?')})")
-        lines.append(f"  类型: {inj.get('category', '未知')}")
+        lines.append(f"  类型: {inj.get('category', '未知')} | 命中{hit_count}条规则")
         lines.append(f"  内容: {preview}\n")
 
     if len(new_injections) > 5:
@@ -127,13 +128,13 @@ class InjectionDeleteHandler(BaseEventHandler):
         result = await detector.detect(message.plain_text)
 
         if result:
-            matched_rule, category, detect_method = result
+            matched_rule, category, detect_method, hit_count = result
             user_id = message.message_base_info.get("user_id", "?")
             msg_id = message.message_base_info.get("message_id", "")
             preview = message.plain_text[:50] + "..." if len(message.plain_text) > 50 else message.plain_text
 
             if self.get_config("action.enable_logging", True):
-                logger.warning(f"[Injection] {action_type} | {user_id} | {category} | {preview}")
+                logger.warning(f"[Injection] {action_type} | {user_id} | {category} | 命中{hit_count}条 | {preview}")
 
             # 通知管理员
             await notify_admin(self.plugin_config, [{
@@ -142,6 +143,7 @@ class InjectionDeleteHandler(BaseEventHandler):
                 "user_id": str(user_id),
                 "text": message.plain_text,
                 "category": category,
+                "hit_count": hit_count,
             }])
 
             if action_type == "delete":
@@ -238,7 +240,7 @@ class InjectionWarnHandler(BaseEventHandler):
             # 规则检测
             rule_result = detector.rule_check(text)
             if rule_result:
-                matched_rule, category = rule_result
+                matched_rule, category, hit_count = rule_result
                 new_suspects.append({
                     "msg_id": msg_id,
                     "user": nickname,
@@ -246,6 +248,7 @@ class InjectionWarnHandler(BaseEventHandler):
                     "text": text,
                     "rule": matched_rule,
                     "category": category,
+                    "hit_count": hit_count,
                 })
 
         # 清理滑出上下文的消息
@@ -338,6 +341,7 @@ class PromptInjectionGuardPlugin(BasePlugin):
             "mode": ConfigField(type=str, default="rule_then_llm", description="rule_only/rule_then_llm/llm_only"),
             "follow_main_context_size": ConfigField(type=bool, default=True, description="跟随主程序上下文长度"),
             "custom_check_size": ConfigField(type=int, default=30, description="自定义检查范围"),
+            "min_rule_hits": ConfigField(type=int, default=1, description="规则命中阈值"),
         },
         "action": {
             "type": ConfigField(type=str, default="warn_context", description="delete/warn_context/detect_only"),

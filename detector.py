@@ -98,18 +98,24 @@ class InjectionDetector:
         if custom_pt:
             self.patterns.extend(custom_pt)
 
-    def rule_check(self, text: str) -> Optional[Tuple[str, str]]:
-        """规则检测，返回 (规则, 类别) 或 None"""
+    def rule_check(self, text: str) -> Optional[Tuple[str, str, int]]:
+        """规则检测，返回 (命中规则, 类别, 命中数量) 或 None"""
         text_lower = text.lower()
+        min_hits = self.config.get("detection", {}).get("min_rule_hits", 1)
+
+        hits = []  # (规则, 类别)
 
         for keyword in self.keywords:
             if keyword.lower() in text_lower:
                 category = KEYWORD_CATEGORIES.get(keyword.lower(), "自定义")
-                return (keyword, category)
+                hits.append((keyword, category))
 
         for compiled, category in self.compiled_patterns:
             if compiled.search(text):
-                return (compiled.pattern, category)
+                hits.append((compiled.pattern, category))
+
+        if len(hits) >= min_hits:
+            return (hits[0][0], hits[0][1], len(hits))
 
         return None
 
@@ -226,13 +232,13 @@ class InjectionDetector:
         return confirmed
 
     async def detect(self, text: str) -> Optional[Tuple[str, str, str]]:
-        """单条检测，返回 (规则, 类别, 方式) 或 None"""
+        """单条检测，返回 (规则, 类别, 方式, 命中数) 或 None"""
         mode = self.config.get("detection", {}).get("mode", "rule_then_llm")
 
         if mode == "rule_only":
             result = self.rule_check(text)
             if result:
-                return (result[0], result[1], "规则")
+                return (result[0], result[1], "规则", result[2])
             return None
 
         elif mode == "rule_then_llm":
@@ -240,13 +246,13 @@ class InjectionDetector:
             if result:
                 is_injection, reason = await self.llm_check(text)
                 if is_injection:
-                    return (result[0], result[1], f"规则+LLM")
+                    return (result[0], result[1], "规则+LLM", result[2])
             return None
 
         elif mode == "llm_only":
             is_injection, reason = await self.llm_check(text)
             if is_injection:
-                return ("LLM", reason, "LLM")
+                return ("LLM", reason, "LLM", 1)
             return None
 
         return None
